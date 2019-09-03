@@ -1,1 +1,1 @@
-'web: gunicorn mrrs-test.wsgi --log-file -'
+web: gunicorn mrrs.wsgi

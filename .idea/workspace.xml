@@ -46,7 +46,7 @@
         <entry file="file://$PROJECT_DIR$/Procfile">
           <provider selected="true" editor-type-id="text-editor">
             <state>
-              <caret column="24" selection-start-column="24" selection-end-column="24" />
+              <caret column="23" lean-forward="true" selection-start-column="23" selection-end-column="23" />
             </state>
           </provider>
         </entry>
@@ -194,7 +194,7 @@
     <entry file="file://$PROJECT_DIR$/Procfile">
       <provider selected="true" editor-type-id="text-editor">
         <state>
-          <caret column="24" selection-start-column="24" selection-end-column="24" />
+          <caret column="23" lean-forward="true" selection-start-column="23" selection-end-column="23" />
         </state>
       </provider>
     </entry>
