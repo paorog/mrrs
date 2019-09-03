@@ -15,8 +15,11 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/mrrs/settings.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="517">
-              <caret line="159" column="46" selection-start-line="159" selection-start-column="46" selection-end-line="159" selection-end-column="46" />
+            <state relative-caret-position="483">
+              <caret line="159" selection-start-line="159" selection-end-line="159" />
+              <folding>
+                <element signature="e#305#314#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -139,8 +142,11 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/mrrs/settings.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="517">
-          <caret line="159" column="46" selection-start-line="159" selection-start-column="46" selection-end-line="159" selection-end-column="46" />
+        <state relative-caret-position="483">
+          <caret line="159" selection-start-line="159" selection-end-line="159" />
+          <folding>
+            <element signature="e#305#314#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
