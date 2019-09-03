@@ -1,1 +1,1 @@
-'web: gunicorn mysite.wsgi --log-file -' 
+'web: gunicorn app_name=mrrs-test --log-file -'
