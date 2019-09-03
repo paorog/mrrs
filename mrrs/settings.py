@@ -157,4 +157,4 @@ EMAIL_HOST_PASSWORD = 'K!77u@07'
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
 
-STATIC_ROOT = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, '/static/')
