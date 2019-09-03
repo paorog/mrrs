@@ -61,7 +61,7 @@ MIDDLEWARE = [
 ]
 
 CORS_ORIGIN_WHITELIST = (
-    'http://mrrs.heroesofdigital.com',
+    'https://mrrs-frontend.firebaseapp.com',
 )
 
 ROOT_URLCONF = 'mrrs.urls'
