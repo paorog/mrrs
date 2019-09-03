@@ -155,4 +155,6 @@ EMAIL_PORT = 587
 EMAIL_HOST_USER = 'arogelio13@gmail.com'
 EMAIL_HOST_PASSWORD = 'K!77u@07'
 EMAIL_USE_TLS = True
-EMAIL_USE_SSL = False 
+EMAIL_USE_SSL = False
+
+STATIC_ROOT = '/static/'
