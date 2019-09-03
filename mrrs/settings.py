@@ -26,8 +26,7 @@ SECRET_KEY = 'zqr)j8%v=^wp28ro57ezff8ycm+&%9sxxo02@62-#1ggrkis-n'
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    'localhost',
-    'http://software.heroesofdigital.com/'
+    '*'
 ]
 
 
