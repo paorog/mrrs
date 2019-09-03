@@ -1,1 +1,1 @@
-'web: gunicorn app_name=mrrs-test --log-file -'
+'web: gunicorn run:app --log-file -'
