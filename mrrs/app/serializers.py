@@ -9,6 +9,8 @@ from django.template.loader import render_to_string
 from django_countries.fields import CountryField
 from django_countries import countries
 from django.http import HttpResponse, JsonResponse
+from django.core import serializers as serializer
+from drf_writable_nested import WritableNestedModelSerializer
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -198,7 +200,7 @@ class KpiCreatedSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = KpiCreated
-        fields = ('id', 'kpi')
+        fields = ('id', 'kpi', 'kpi_text')
 
 
 class KpiCreatedManagerSerializer(serializers.ModelSerializer):
@@ -206,14 +208,14 @@ class KpiCreatedManagerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = KpiCreated
-        fields = ('id', 'kpi')
+        fields = ('id', 'kpi', 'kpi_text')
 
 
 class ClientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Client
         fields = ("xero_id", "created", "client_name", "other_revenue", "media_fees", "contract", "industry", "company_size",
-                  "source", "pm", "writer", "start_date", "end_date", "duration")
+                "pm", "writer", "start_date", "end_date", "duration")
 
 
 class ClientListManagerSerializer(serializers.ModelSerializer):
@@ -223,41 +225,42 @@ class ClientListManagerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Client
-        fields = ('id', 'xero_id', 'client_name', 'services', 'contents', 'kpi', 'duration', 'start_date', 'end_date', 'created_at')
+        fields = ('id', 'xero_id', 'created', 'client_name', "other_revenue", "media_fees", "contract", "industry", "company_size",
+                "pm", "writer", 'services', 'contents', 'kpi', 'duration', 'start_date', 'end_date', 'created_at')
 
 
-class ClientManagerSerializer(serializers.ModelSerializer):
-    client = ClientSerializer(required=False)
+class ClientManagerSerializer(WritableNestedModelSerializer):
+    #client = ClientSerializer(many=False, required=False)
     services = ServiceCreatedManagerSerializer(many=True, required=False)
     contents = ContentCreatedManagerSerializer(many=True, required=False)
     kpi = KpiCreatedManagerSerializer(many=True, required=False)
 
     class Meta:
         model = Client
-        fields = ("client", "services", "contents", "kpi")
+        fields = ('id', 'xero_id', 'created', 'client_name', "other_revenue", "media_fees", "contract", "industry", "company_size",
+                "pm", "writer", 'services', 'contents', 'kpi', 'duration', 'start_date', 'end_date', 'created_at')
 
-    def create(self, validated_data):
-        #return validated_data
-        client_data = validated_data.pop('client')
-        services_data = validated_data.pop('services')
-        contents_data = validated_data.pop('contents')
-        kpis_data = validated_data.pop('kpi')
-
-        save_client = Client.objects.create(**client_data)
-
-        for service_data in services_data:
-            save_service = ServiceCreated.objects.create(**service_data)
-            save_client.services.add(save_service)
-
-        for content_data in contents_data:
-            save_content = ContentCreated.objects.create(**content_data)
-            save_client.contents.add(save_content)
-
-        for kpi_data in kpis_data:
-            save_kpi = KpiCreated.objects.create(**kpi_data)
-            save_client.kpi.add(save_kpi)
-
-        return save_client
+    # def create(self, validated_data):
+    #     client_data = validated_data.pop('client')
+    #     services_data = validated_data.pop('services')
+    #     contents_data = validated_data.pop('contents')
+    #     kpis_data = validated_data.pop('kpi')
+    #
+    #     save_client = Client.objects.create(**client_data)
+    #
+    #     for service_data in services_data:
+    #         save_service = ServiceCreated.objects.create(**service_data)
+    #         save_client.services.add(save_service)
+    #
+    #     for content_data in contents_data:
+    #         save_content = ContentCreated.objects.create(**content_data)
+    #         save_client.contents.add(save_content)
+    #
+    #     for kpi_data in kpis_data:
+    #         save_kpi = KpiCreated.objects.create(**kpi_data)
+    #         save_client.kpi.add(save_kpi)
+    #
+    #     return save_client
 
 
 class ContentCreatedSerializer(serializers.ModelSerializer):

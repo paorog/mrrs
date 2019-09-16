@@ -129,7 +129,7 @@ class Kpi(models.Model):
 
 class KpiCreated(models.Model):
     kpi = models.ForeignKey(Kpi, to_field="id", db_column="kpi_id", on_delete=models.CASCADE)
-
+    kpi_text = models.CharField(max_length=100, null=True)
 
 class Industry(models.Model):
     industry = models.CharField(max_length=100)
@@ -151,7 +151,7 @@ class Content(models.Model):
 
 class ServiceCreated(models.Model):
     service = models.ForeignKey(Service, to_field="id", db_column="service_id", on_delete=models.CASCADE)
-    service_qty = models.IntegerField(null=True, default=None, blank=True)
+    service_qty = models.IntegerField(null=True, default=1, blank=True)
     service_status = models.ForeignKey(System, to_field="id", db_column="service_status_id", default=None, blank=True,
                                        null=True, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True, null=True)
@@ -168,18 +168,18 @@ class ContentCreated(models.Model):
 
 
 class Client(models.Model):
-    xero_id = models.CharField(max_length=50, default=None, unique=True)
+    xero_id = models.CharField(max_length=50, default=None)
     created = models.ForeignKey(User, to_field="id", db_column="created_id", related_name="created_by", on_delete=models.PROTECT)
     client_name = models.CharField(max_length=100)
     services = models.ManyToManyField(ServiceCreated)
     contents = models.ManyToManyField(ContentCreated)
     other_revenue = models.CharField(max_length=100)
     media_fees = models.FloatField(default=0)
-    duration = models.ForeignKey(Duration, to_field="id", db_column="duration_id", on_delete=models.CASCADE)
+    #duration = models.ForeignKey(Duration, to_field="id", db_column="duration_id", on_delete=models.CASCADE)
+    duration = models.CharField(max_length=10)
     contract = models.CharField(max_length=100, default=None, blank=True, null=True)
     industry = models.ForeignKey(Industry, to_field="id", db_column="industry_id", on_delete=models.PROTECT)
-    company_size = models.IntegerField()
-    source = models.CharField(max_length=100)
+    company_size = models.CharField(max_length=20)
     pm = models.ForeignKey(User, to_field="id", db_column="pm_id", related_name="client_pm", default=None, blank=True,
                            null=True, on_delete=models.PROTECT)
     writer = models.ForeignKey(User, to_field="id", db_column="writer_id", related_name="client_writer", default=None,

@@ -168,6 +168,23 @@ class ClientListViewSet(viewsets.ModelViewSet):
 
         return HttpResponse(xero_data)
 
+    def list_invoices(request):
+        with open(r'C:\Program Files\OpenSSL-Win64\bin\privatekey.pem') as keyfile:
+            rsa_key = keyfile.read()
+
+        credentials = PrivateCredentials('R5P0XUAGIBH2ARAHEUEPVFOEHRSOX7', rsa_key)
+        xero = Xero(credentials)
+        #invoice_id = request.GET.get('invoice_id')
+        # xero_data = xero.invoices.filter(InvoiceID=invoice_id)
+        #
+        # return JsonResponse({'xero_data': list(xero_data)})
+
+        client_ids = Client.objects.all().values_list('xero_id', flat=True)
+        #xero_data = xero.invoices.filter(Contact_ContactID__in=client_ids)
+        xero_data = xero.invoices.filter(Contact_ContactID='78a16a55-7dd6-46e5-926c-7e99a017b3ae')
+
+        return JsonResponse({'data': list(xero_data)})
+
 
 class ClientViewSet(viewsets.ModelViewSet):
 

@@ -62,6 +62,7 @@ MIDDLEWARE = [
 
 CORS_ORIGIN_WHITELIST = (
     'https://mrrs-frontend.firebaseapp.com',
+    'http://localhost:4200'
 )
 
 ROOT_URLCONF = 'mrrs.urls'
@@ -106,6 +107,14 @@ REST_FRAMEWORK = {
 
 DATABASES = {
     'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'mrr_software',
+        'USER': 'postgres',
+        'PASSWORD': 'admin',
+        'HOST': 'localhost',
+        'PORT': '5432'
+    },
+    'original': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }

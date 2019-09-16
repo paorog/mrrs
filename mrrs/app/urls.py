@@ -26,5 +26,6 @@ urlpatterns = [
     url(r'^auth', CustomObtainAuthToken.as_view()),
     url(r'^list_designations/$', views.DesignationViewSet.load_designations),
     url(r'^list_invoices/$', views.ClientListViewSet.get_invoices),
-    url(r'^get_invoice/$', views.ClientListViewSet.get_invoice)
+    url(r'^get_invoice/$', views.ClientListViewSet.get_invoice),
+    url(r'^get_weekly_invoices/$', views.ClientListViewSet.list_invoices)
 ]
