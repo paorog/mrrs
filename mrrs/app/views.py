@@ -9,7 +9,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from django.core import serializers as serializer
 from mrrs.app.models import UserProfile, Role, Department, Designation, Client, ContentCreated, ServiceCreated, Service, \
-    Content, Kpi, Duration, Industry
+    Content, Kpi, Duration, Industry, Nps, NpsCreated
 from rest_framework import status
 from rest_framework import generics
 from django.http import HttpResponse, JsonResponse
@@ -19,7 +19,9 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.views import APIView
 from xero import Xero
 from xero.auth import PrivateCredentials
-
+from django.db.models import Q
+from django.db.models import Sum
+import datetime
 
 class UserViewSet(viewsets.ModelViewSet):
     """
@@ -168,22 +170,60 @@ class ClientListViewSet(viewsets.ModelViewSet):
 
         return HttpResponse(xero_data)
 
-    def list_invoices(request):
-        with open(r'C:\Program Files\OpenSSL-Win64\bin\privatekey.pem') as keyfile:
-            rsa_key = keyfile.read()
+    def dashboard_metrics(request):
+        date = request.GET.get('date')
+        services = Client.objects.filter(Q(start_date=date) | Q(start_date__day=date[8:10])).values_list('services',
+                                                                                                         flat=True)
+        ltvs = Client.objects.filter(Q(start_date=date) | Q(start_date__day=date[8:10])).values('id', 'start_date', 'services')
 
-        credentials = PrivateCredentials('R5P0XUAGIBH2ARAHEUEPVFOEHRSOX7', rsa_key)
-        xero = Xero(credentials)
-        #invoice_id = request.GET.get('invoice_id')
-        # xero_data = xero.invoices.filter(InvoiceID=invoice_id)
-        #
-        # return JsonResponse({'xero_data': list(xero_data)})
+        if not services:
+            mrr_current_day = 0
+        else:
+            mrr_current_day = ServiceCreated.objects.filter(id__in=services).aggregate(Sum('service_fee'))['service_fee__sum']
 
-        client_ids = Client.objects.all().values_list('xero_id', flat=True)
-        #xero_data = xero.invoices.filter(Contact_ContactID__in=client_ids)
-        xero_data = xero.invoices.filter(Contact_ContactID='78a16a55-7dd6-46e5-926c-7e99a017b3ae')
+        # client = Client.objects.get(id=2)
+        # services = client.services.all()
+        # for service in services:
+        #     mrr_current_day = +ServiceCreated.objects.filter.aggregate(Sum('service_fee'))['service_fee__sum']
 
-        return JsonResponse({'data': list(xero_data)})
+        return HttpResponse(mrr_current_day)
+        #return JsonResponse({'services': client.services.all().values('service_fee')})
+        #client = Client.objects.all().values('client_name', 'services')
+        return JsonResponse({'clients': list(client)})
+
+    def dashboard_breakdown(request):
+        today = datetime.date.today()
+        new_clients = Client.objects.filter(created_at__month=today.month).count()
+        client_churns = Client.objects.filter(in_churn=True).count()
+        client_churns_id = Client.objects.filter(in_churn=True).values('id')
+        client_churns_sum_value = ServiceCreated.objects.filter(id__in=client_churns_id).aggregate(Sum('service_fee'))['service_fee__sum']
+
+        total_changes = client_churns_sum_value
+
+        breakdowns = {
+            'new_clients_count': new_clients,
+            'clients_churn_count': client_churns,
+            'clients_churn_value': client_churns_sum_value,
+            'total_changes': total_changes
+        }
+
+        return JsonResponse({'breakdowns': breakdowns})
+
+    def get_my_clients(request):
+        userid = request.GET.get('createdby')
+        clients = Client.objects.filter(created=userid).values('id', 'client_name', 'management_fee', 'end_date')
+        return JsonResponse({'clients': list(clients)})
+
+    def get_clients_by_hero(request):
+        heroid = request.GET.get('hero_id')
+        dept = request.GET.get('dept')
+
+        if dept == 4:
+            clients = Client.objects.filter(created=heroid).values('id', 'client_name', 'start_date', 'end_date')
+        else:
+            clients = Client.objects.filter(pm=heroid).values('id', 'client_name', 'start_date', 'end_date')
+
+        return JsonResponse({'clients': list(clients)})
 
 
 class ClientViewSet(viewsets.ModelViewSet):
@@ -246,6 +286,22 @@ class IndustryViewSet(viewsets.ModelViewSet):
 
     queryset = Industry.objects.all()
     serializer_class = serializers.IndustrySerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+
+class NpsViewSet(viewsets.ModelViewSet):
+
+    queryset = Nps.objects.all()
+    serializer_class = serializers.NpsSerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+
+class NpsCreatedViewSet(viewsets.ModelViewSet):
+
+    queryset = NpsCreated.objects.all()
+    serializer_class = serializers.NpsCreatedSerializer
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 

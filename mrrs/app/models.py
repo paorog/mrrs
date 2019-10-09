@@ -152,6 +152,7 @@ class Content(models.Model):
 class ServiceCreated(models.Model):
     service = models.ForeignKey(Service, to_field="id", db_column="service_id", on_delete=models.CASCADE)
     service_qty = models.IntegerField(null=True, default=1, blank=True)
+    service_fee = models.IntegerField()
     service_status = models.ForeignKey(System, to_field="id", db_column="service_status_id", default=None, blank=True,
                                        null=True, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True, null=True)
@@ -171,7 +172,9 @@ class Client(models.Model):
     xero_id = models.CharField(max_length=50, default=None)
     created = models.ForeignKey(User, to_field="id", db_column="created_id", related_name="created_by", on_delete=models.PROTECT)
     client_name = models.CharField(max_length=100)
+    in_churn = models.BooleanField(default=0)
     services = models.ManyToManyField(ServiceCreated)
+    management_fee = models.IntegerField(null=True, default=None, blank=True)
     contents = models.ManyToManyField(ContentCreated)
     other_revenue = models.CharField(max_length=100)
     media_fees = models.FloatField(default=0)
@@ -192,15 +195,26 @@ class Client(models.Model):
 
 
 class Invoice(models.Model):
-    xero_id = models.CharField(max_length=100, default=None, blank=True, null=True)
     client = models.ForeignKey(Client, to_field="id", db_column="client_id", default=None, on_delete=models.CASCADE)
     amount = models.FloatField(default=0)
     is_paid = models.BooleanField(default=0)
+
+
+class Nps(models.Model):
+    nps = models.CharField(max_length=100)
+
+
+class NpsCreated(models.Model):
+    nps = models.ForeignKey(Nps, to_field="id", db_column="nps_id", default=None, on_delete=models.CASCADE)
+    quantity = models.IntegerField(default=1)
+    service = models.CharField(max_length=100)
 
 
 class CsmClient(models.Model):
     client = models.ForeignKey(Client, to_field="id", db_column="client_id", default=None, on_delete=models.CASCADE)
     week = models.IntegerField(default=None)
     score = models.IntegerField(default=None)
+    nps = models.ManyToManyField(NpsCreated)
     created_at = models.DateTimeField(auto_now_add=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, null=True)
+

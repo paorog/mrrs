@@ -1,5 +1,5 @@
 from django.contrib.auth.models import User
-from mrrs.app.models import UserProfile, Role, Department, Designation, Kpi, Industry, Duration, Service, Content,ServiceCreated, ContentCreated, Invoice, Client, Kpi, KpiCreated
+from mrrs.app.models import UserProfile, Role, Department, Designation, Kpi, Industry, Duration, Service, Content,ServiceCreated, ContentCreated, Invoice, Client, Kpi, KpiCreated, Nps, NpsCreated
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
 from django.contrib.sites.shortcuts import get_current_site
@@ -156,7 +156,7 @@ class ServiceCreatedManagerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ServiceCreated
-        fields = ('service', 'service_qty')
+        fields = ('service', 'service_qty', 'service_fee')
 
 
 class ServiceCreatedSerializer(serializers.ModelSerializer):
@@ -164,7 +164,7 @@ class ServiceCreatedSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ServiceCreated
-        fields = ('service', 'service_qty', 'service_status')
+        fields = ('service', 'service_qty', 'service_fee', 'service_status')
 
 
 class ContentSerializer(serializers.ModelSerializer):
@@ -214,7 +214,7 @@ class KpiCreatedManagerSerializer(serializers.ModelSerializer):
 class ClientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Client
-        fields = ("xero_id", "created", "client_name", "other_revenue", "media_fees", "contract", "industry", "company_size",
+        fields = ("xero_id", "created", "client_name", 'management_fee', "other_revenue", "media_fees", "contract", "industry", "company_size",
                 "pm", "writer", "start_date", "end_date", "duration")
 
 
@@ -226,7 +226,7 @@ class ClientListManagerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Client
         fields = ('id', 'xero_id', 'created', 'client_name', "other_revenue", "media_fees", "contract", "industry", "company_size",
-                "pm", "writer", 'services', 'contents', 'kpi', 'duration', 'start_date', 'end_date', 'created_at')
+                "pm", "writer", 'services', 'management_fee', 'contents', 'kpi', 'duration', 'start_date', 'end_date', 'created_at')
 
 
 class ClientManagerSerializer(WritableNestedModelSerializer):
@@ -238,7 +238,7 @@ class ClientManagerSerializer(WritableNestedModelSerializer):
     class Meta:
         model = Client
         fields = ('id', 'xero_id', 'created', 'client_name', "other_revenue", "media_fees", "contract", "industry", "company_size",
-                "pm", "writer", 'services', 'contents', 'kpi', 'duration', 'start_date', 'end_date', 'created_at')
+                "pm", "writer", 'services', 'management_fee', 'contents', 'kpi', 'duration', 'start_date', 'end_date', 'created_at')
 
     # def create(self, validated_data):
     #     client_data = validated_data.pop('client')
@@ -276,4 +276,17 @@ class IndustrySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Industry
+        fields = '__all__'
+
+
+class NpsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Nps
+        fields = '__all__'
+
+
+class NpsCreatedSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NpsCreated
         fields = '__all__'

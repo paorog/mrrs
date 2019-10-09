@@ -1,6 +1,6 @@
 from django.contrib import admin
 from mrrs.app.models import System, Department, Designation, Role, UserProfile, Kpi, Industry, Duration, Service, \
-    Content
+    Content, Nps
 # Register your models here.
 #
 
@@ -62,6 +62,12 @@ class ContentAdmin(admin.ModelAdmin):
     search_fields = ('id', 'content')
 
 
+class NpsAdmin(admin.ModelAdmin):
+    list_display = ('id', 'nps')
+    list_filter = ('id', 'nps')
+    search_fields = ('id', 'nps')
+
+
 admin.site.register(UserProfile, UserProfileAdmin)
 admin.site.register(System)
 admin.site.register(Role, RoleAdmin)
@@ -72,5 +78,5 @@ admin.site.register(Industry, IndustryAdmin)
 admin.site.register(Duration, DurationAdmin)
 admin.site.register(Service, ServiceAdmin)
 admin.site.register(Content, ContentAdmin)
-
+admin.site.register(Nps, NpsAdmin)
 
