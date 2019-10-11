@@ -198,6 +198,7 @@ class Invoice(models.Model):
     client = models.ForeignKey(Client, to_field="id", db_column="client_id", default=None, on_delete=models.CASCADE)
     amount = models.FloatField(default=0)
     is_paid = models.BooleanField(default=0)
+    week_num = models.IntegerField()
 
 
 class Nps(models.Model):

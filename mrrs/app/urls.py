@@ -20,6 +20,7 @@ router.register(r'list_contents', views.ContentViewSet)
 router.register(r'list_kpi', views.KpiViewSet)
 router.register(r'list_duration', views.DurationViewSet)
 router.register(r'list_industry', views.IndustryViewSet)
+router.register(r'list_invoices', views.InvoiceViewSet)
 router.register(r'list_nps', views.NpsViewSet)
 
 urlpatterns = [
@@ -29,6 +30,7 @@ urlpatterns = [
     url(r'^list_invoices/$', views.ClientListViewSet.get_invoices),
     url(r'^get_invoice/$', views.ClientListViewSet.get_invoice),
     url(r'^dashboard_metrics/$', views.ClientListViewSet.dashboard_metrics),
+    url(r'^dashboard_metrics_data/$', views.ClientListViewSet.dashboard_metrics_data),
     url(r'^dashboard_breakdown/$', views.ClientListViewSet.dashboard_breakdown),
     url(r'^get_my_clients/$', views.ClientListViewSet.get_my_clients),
     url(r'^calendar_clients/$', views.ClientListViewSet.get_clients_by_hero)

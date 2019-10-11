@@ -9,7 +9,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from django.core import serializers as serializer
 from mrrs.app.models import UserProfile, Role, Department, Designation, Client, ContentCreated, ServiceCreated, Service, \
-    Content, Kpi, Duration, Industry, Nps, NpsCreated
+    Content, Kpi, Duration, Industry, Invoice, Nps, NpsCreated
 from rest_framework import status
 from rest_framework import generics
 from django.http import HttpResponse, JsonResponse
@@ -172,6 +172,7 @@ class ClientListViewSet(viewsets.ModelViewSet):
 
     def dashboard_metrics(request):
         date = request.GET.get('date')
+        month_firstday = date[0:7]+'-01 00:31:04.09677+08'
         services = Client.objects.filter(Q(start_date=date) | Q(start_date__day=date[8:10])).values_list('services',
                                                                                                          flat=True)
         ltvs = Client.objects.filter(Q(start_date=date) | Q(start_date__day=date[8:10])).values('id', 'start_date', 'services')
@@ -190,6 +191,19 @@ class ClientListViewSet(viewsets.ModelViewSet):
         #return JsonResponse({'services': client.services.all().values('service_fee')})
         #client = Client.objects.all().values('client_name', 'services')
         return JsonResponse({'clients': list(client)})
+
+    def dashboard_metrics_data(request):
+        date = request.GET.get('date')
+        month_firstday = date[0:7] + '-01 00:31:04.09677+08'
+        churns_this_month = Client.objects.filter(in_churn=1).count()
+        active_clients_this_month = Client.objects.filter(created_at__gte=month_firstday).count()
+        churn_rate = churns_this_month / active_clients_this_month
+
+        dashboard_metrics_data = {
+            'churn_rate': churn_rate
+        }
+
+        return JsonResponse({'data': dashboard_metrics_data})
 
     def dashboard_breakdown(request):
         today = datetime.date.today()
@@ -288,6 +302,21 @@ class IndustryViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.IndustrySerializer
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
+
+
+class InvoiceViewSet(viewsets.ModelViewSet):
+    queryset = Invoice.objects.all()
+    serializer_class = serializers.InvoiceSerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    # def post(self, request, *args, **kwargs):
+    #     self.object = self.get_object()
+    #     serializer = self.get_serializer(data=request.data)
+    #     exists = Invoice.objects.get_or_create(client_id=self.client_id)
+    #
+    #     if exists:
+    #         Invoice.objects.filter(client._id=self.client_id).update(status=self.status)
 
 
 class NpsViewSet(viewsets.ModelViewSet):
