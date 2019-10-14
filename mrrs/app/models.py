@@ -219,3 +219,10 @@ class CsmClient(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, null=True)
 
+
+class DashboardLiveStream(models.Model):
+    type = models.CharField(max_length=100)
+    amount = models.CharField(max_length=50, default=0, null=True)
+    client = models.ForeignKey(Client, to_field="id", db_column="client_id", on_delete=models.CASCADE)
+    activity = models.CharField(max_length=200)
+    created_at = models.DateTimeField(auto_now_add=True, null=True)

@@ -9,7 +9,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from django.core import serializers as serializer
 from mrrs.app.models import UserProfile, Role, Department, Designation, Client, ContentCreated, ServiceCreated, Service, \
-    Content, Kpi, Duration, Industry, Invoice, Nps, NpsCreated
+    Content, Kpi, Duration, Industry, Invoice, Nps, NpsCreated, DashboardLiveStream
 from rest_framework import status
 from rest_framework import generics
 from django.http import HttpResponse, JsonResponse
@@ -239,6 +239,15 @@ class ClientListViewSet(viewsets.ModelViewSet):
 
         return JsonResponse({'clients': list(clients)})
 
+    def get_client_by_xero(request):
+        xeroid = request.GET.get('xero_id')
+        client = Client.objects.filter(xero_id=xeroid).values("id","xero_id", "in_churn","created","client_name",
+                                                              "management_fee", "other_revenue", "media_fees",
+                                                              "contract", "industry", "company_size", "pm", "writer",
+                                                              "start_date", "end_date", "duration")
+
+        return JsonResponse({'client': list(client)})
+
 
 class ClientViewSet(viewsets.ModelViewSet):
 
@@ -331,6 +340,14 @@ class NpsCreatedViewSet(viewsets.ModelViewSet):
 
     queryset = NpsCreated.objects.all()
     serializer_class = serializers.NpsCreatedSerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+
+class DashboardLiveStreamViewSet(viewsets.ModelViewSet):
+
+    queryset = DashboardLiveStream.objects.all()
+    serializer_class = serializers.DashboardLiveStreamSerializer
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 

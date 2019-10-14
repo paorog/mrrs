@@ -1,5 +1,5 @@
 from django.contrib.auth.models import User
-from mrrs.app.models import UserProfile, Role, Department, Designation, Kpi, Industry, Duration, Service, Content,ServiceCreated, ContentCreated, Invoice, Client, Kpi, KpiCreated, Nps, NpsCreated
+from mrrs.app.models import UserProfile, Role, Department, Designation, Kpi, Industry, Duration, Service, Content,ServiceCreated, ContentCreated, Invoice, Client, Kpi, KpiCreated, Nps, NpsCreated, DashboardLiveStream
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
 from django.contrib.sites.shortcuts import get_current_site
@@ -214,7 +214,7 @@ class KpiCreatedManagerSerializer(serializers.ModelSerializer):
 class ClientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Client
-        fields = ("xero_id", "in_churn", "created", "client_name", 'management_fee', "other_revenue", "media_fees", "contract", "industry", "company_size",
+        fields = ("id", "xero_id", "in_churn", "created", "client_name", 'management_fee', "other_revenue", "media_fees", "contract", "industry", "company_size",
                 "pm", "writer", "start_date", "end_date", "duration")
 
 
@@ -296,3 +296,11 @@ class NpsCreatedSerializer(serializers.ModelSerializer):
     class Meta:
         model = NpsCreated
         fields = '__all__'
+
+
+class DashboardLiveStreamSerializer(WritableNestedModelSerializer):
+    client = ClientSerializer(many=False, required=False)
+
+    class Meta:
+        model = DashboardLiveStream
+        fields = ('type', 'amount', 'activity', 'created_at', 'client')
