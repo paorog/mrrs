@@ -2,6 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d4d81d85-0243-40d4-85b3-b7c82d33445a" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mrrs.sqlite3" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/mrrs/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/mrrs/settings.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
