@@ -177,16 +177,41 @@ class ClientListViewSet(viewsets.ModelViewSet):
                                                                                                          flat=True)
         ltvs = Client.objects.filter(Q(start_date=date) | Q(start_date__day=date[8:10])).values('id', 'start_date', 'services')
 
+        # mrr_upgrades -> need to pull added services in csm clients to determine mrr upgrades.
+        mrr_upgrades = 0
+
         if not services:
             mrr_current_day = 0
+            revenue_churn_current = 0
         else:
             mrr_current_day = ServiceCreated.objects.filter(id__in=services).aggregate(Sum('service_fee'))['service_fee__sum']
+            revenue_churn_current = (mrr_current_day - mrr_upgrades) / mrr_current_day
+
+        dateyear = date[0:4]
+        datemonth = date[5:7]
+        dateday = date[8:11]
+        active_clients_this_month = Client.objects.filter(created_at__gte=month_firstday).count()
+
+        churns_this_day = Client.objects.filter(updated_at__year=dateyear, updated_at__month=datemonth,
+                                                updated_at__day=dateday).filter(in_churn=True).count()
+        churn_rate_current = churns_this_day / active_clients_this_month
 
         # client = Client.objects.get(id=2)
         # services = client.services.all()
         # for service in services:
         #     mrr_current_day = +ServiceCreated.objects.filter.aggregate(Sum('service_fee'))['service_fee__sum']
 
+        metrics = {
+            'mrr_current': mrr_current_day,
+            'ltv_current': 0,
+            'churn_current': churn_rate_current,
+            'churn_revenue_current': revenue_churn_current,
+            'reactive_clients_current': 0,
+            'reactive_clients_revenue_current': 0,
+            'upsells_current': 0,
+            'downsells_current': 0
+        }
+        return JsonResponse({'metrics': metrics})
         return HttpResponse(mrr_current_day)
         #return JsonResponse({'services': client.services.all().values('service_fee')})
         #client = Client.objects.all().values('client_name', 'services')
@@ -195,12 +220,27 @@ class ClientListViewSet(viewsets.ModelViewSet):
     def dashboard_metrics_data(request):
         date = request.GET.get('date')
         month_firstday = date[0:7] + '-01 00:31:04.09677+08'
-        churns_this_month = Client.objects.filter(in_churn=1).count()
+
         active_clients_this_month = Client.objects.filter(created_at__gte=month_firstday).count()
+
+        churns_this_month = Client.objects.filter(in_churn=True).count()
         churn_rate = churns_this_month / active_clients_this_month
 
+        active_client_ids = Client.objects.filter(in_churn=False).values('id')
+        current_mrr = ServiceCreated.objects.filter(id__in=active_client_ids).aggregate(Sum('service_fee'))[
+            'service_fee__sum']
+        #mrr_upgrades -> need to pull added services in csm clients to determine mrr upgrades.
+        mrr_upgrades = 0
+        revenue_churn = (current_mrr - mrr_upgrades) / current_mrr
+
+        #reactive_clients -> number of reactivated clients in the month
+        #reactive_clients_revenue -> sum of services fee of clients re-activated
+        #upsells -> sum of upsells
+        #downsells -> sum of downsells
+
         dashboard_metrics_data = {
-            'churn_rate': churn_rate
+            'churn_rate': churn_rate,
+            'revenue_churn_rate': revenue_churn
         }
 
         return JsonResponse({'data': dashboard_metrics_data})
