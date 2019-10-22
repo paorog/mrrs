@@ -1,16 +1,19 @@
 from django.contrib.auth.models import User
-from mrrs.app.models import UserProfile, Role, Department, Designation, Kpi, Industry, Duration, Service, Content,ServiceCreated, ContentCreated, Invoice, Client, Kpi, KpiCreated, Nps, NpsCreated, DashboardLiveStream
+from mrrs.app.models import UserProfile, Role, Department, Designation, Kpi, Industry, Duration, Service, Content, \
+    ServiceCreated, ContentCreated, Invoice, Client, Kpi, KpiCreated, Nps, NpsCreated, WeekScore, WeekScoreCreated, \
+    CsmClient, OtherRevenue, OtherRevenueCreated, DashboardLiveStream
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
-#import rest_framework_filters as filters
+# import rest_framework_filters as filters
 from django_countries.fields import CountryField
 from django_countries import countries
 from django.http import HttpResponse, JsonResponse
 from django.core import serializers as serializer
 from drf_writable_nested import WritableNestedModelSerializer
+
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -18,7 +21,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ('id', 'username', 'email', 'password', 'first_name', 'last_name', 'is_active')
         extra_kwargs = {'password': {'write_only': True, 'required': False}}
 
-        
+
 class UserProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(many=False)
 
@@ -27,7 +30,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = ('user', 'department', 'designation', 'role')
 
     def create(self, validated_data):
-        #return validated_data
+        # return validated_data
         # randpass = User.objects.make_random_password(length=14)
         # instance.user.set_password(randpass)
         # instance.user.save()
@@ -41,7 +44,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
         mail_plain = 'MRRS App'
         mail_sender = 'admin.mrrs@heroesofdigital.com'
         mail_receiver = user_data.get('email')
-        mail_body = render_to_string('email/addhero.html', {'username': user_data.get('username'), 'email': user_data.get('email'), 'password': randpass})
+        mail_body = render_to_string('email/addhero.html',
+                                     {'username': user_data.get('username'), 'email': user_data.get('email'),
+                                      'password': randpass})
 
         send_mail(
             mail_subject,
@@ -52,7 +57,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         )
         return user_profile
 
-    def update(self, instance, validated_data): 
+    def update(self, instance, validated_data):
         user_data = validated_data.pop('user')
         for attr, value in user_data.items():
             setattr(instance.user, attr, value)
@@ -66,21 +71,18 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 
 class RoleSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Role
         fields = ('id', 'role')
 
 
 class DepartmentSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Department
         fields = ('id', 'department')
 
 
 class DesignationSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Designation
         fields = ('department', 'id', 'designation')
@@ -108,7 +110,7 @@ class HeroManagerSerializer(serializers.ModelSerializer):
     #     user_profile = UserProfile.objects.create(user=save_user, **validated_data)
     #     return user_profile
 
-    # def update(self, instance, validated_data): 
+    # def update(self, instance, validated_data):
     #     user_data = validated_data.pop('user')
     #     for attr, value in user_data.items():
     #         setattr(instance.user, attr, value)
@@ -124,13 +126,14 @@ class HeroManagerSerializer(serializers.ModelSerializer):
     #     instance.save()
     #     return instance
 
+
 # class DesignationFilter(filters.FilterSet):
 #     designation = filters.CharFilter(name="department__dept_code")
 
 #     class Meta:
 #         model = Product
 #         fields = ['category', 'in_stock', 'designation']
-#         
+#
 #
 
 
@@ -152,11 +155,12 @@ class ServiceSerializer(serializers.ModelSerializer):
 
 
 class ServiceCreatedManagerSerializer(serializers.ModelSerializer):
-    #service = ServiceSerializer(many=False)
+    # service = ServiceSerializer(many=False)
 
     class Meta:
         model = ServiceCreated
-        fields = ('service', 'service_qty', 'service_fee')
+        fields = ('service', 'service_qty', 'service_fee', 'service_fee_original', 'service_fee_upgrade',
+                  'service_fee_downgrade', 'service_status')
 
 
 class ServiceCreatedSerializer(serializers.ModelSerializer):
@@ -164,7 +168,8 @@ class ServiceCreatedSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ServiceCreated
-        fields = ('service', 'service_qty', 'service_fee', 'service_status')
+        fields = ('service', 'service_qty', 'service_fee', 'service_fee_original', 'service_fee_upgrade',
+                  'service_fee_downgrade', 'service_status')
 
 
 class ContentSerializer(serializers.ModelSerializer):
@@ -178,15 +183,15 @@ class ContentCreatedSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ContentCreated
-        fields = ('content', 'content_qty', 'content_status')
+        fields = ('content', 'content_qty', 'completed')
 
 
 class ContentCreatedManagerSerializer(serializers.ModelSerializer):
-    #content = ContentSerializer(many=False)
+    # content = ContentSerializer(many=False)
 
     class Meta:
         model = ContentCreated
-        fields = ('content', 'content_qty', 'content_status')
+        fields = ('content', 'content_qty', 'completed')
 
 
 class KpiSerializer(serializers.ModelSerializer):
@@ -200,45 +205,76 @@ class KpiCreatedSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = KpiCreated
-        fields = ('id', 'kpi', 'kpi_text')
+        fields = ('id', 'kpi', 'kpi_measure', 'kpi_text')
 
 
 class KpiCreatedManagerSerializer(serializers.ModelSerializer):
-    #kpi = KpiSerializer(many=False)
+    # kpi = KpiSerializer(many=False)
 
     class Meta:
         model = KpiCreated
-        fields = ('id', 'kpi', 'kpi_text')
+        fields = ('id', 'kpi', 'kpi_measure', 'kpi_text')
+
+
+class OtherRevenueSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OtherRevenue
+        fields = ('id', 'other_revenue')
+
+
+class OtherRevenueCreatedSerializer(serializers.ModelSerializer):
+    other_revenue = OtherRevenueSerializer(many=False)
+
+    class Meta:
+        model = OtherRevenueCreated
+        fields = ('other_revenue', 'other_revenue_currency', 'other_revenue_value')
+
+
+class OtherRevenueCreatedManagerSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = OtherRevenueCreated
+        fields = ('other_revenue', 'other_revenue_currency', 'other_revenue_value')
 
 
 class ClientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Client
-        fields = ("id", "xero_id", "in_churn", "created", "client_name", 'management_fee', "other_revenue", "media_fees", "contract", "industry", "company_size",
-                "pm", "writer", "start_date", "end_date", "duration")
+        fields = (
+        "id", "xero_id", "created", "client_name", 'management_fee', "other_revenue", "media_fees",
+        "contract", "industry", "company_size",
+        "pm", "writer", "start_date", "end_date", "duration")
 
 
 class ClientListManagerSerializer(serializers.ModelSerializer):
     services = ServiceCreatedSerializer(many=True)
     contents = ContentCreatedSerializer(many=True)
     kpi = KpiCreatedSerializer(many=True)
+    other_revenue = OtherRevenueCreatedSerializer(many=True)
 
     class Meta:
         model = Client
-        fields = ('id', 'xero_id', "in_churn", 'created', 'client_name', "other_revenue", "media_fees", "contract", "industry", "company_size",
-                "pm", "writer", 'services', 'management_fee', 'contents', 'kpi', 'duration', 'start_date', 'end_date', 'created_at')
+        fields = (
+        'id', 'xero_id', 'created', 'client_name', "other_revenue", "media_fees", "contract", "industry",
+        "company_size",
+        "pm", "writer", 'services', 'management_fee', 'contents', 'kpi', 'duration', 'start_date', 'end_date',
+        'created_at')
 
 
 class ClientManagerSerializer(WritableNestedModelSerializer):
-    #client = ClientSerializer(many=False, required=False)
+    # client = ClientSerializer(many=False, required=False)
     services = ServiceCreatedManagerSerializer(many=True, required=False)
     contents = ContentCreatedManagerSerializer(many=True, required=False)
     kpi = KpiCreatedManagerSerializer(many=True, required=False)
+    other_revenue = OtherRevenueCreatedManagerSerializer(many=True)
 
     class Meta:
         model = Client
-        fields = ('id', 'xero_id', "in_churn", 'created', 'client_name', "other_revenue", "media_fees", "contract", "industry", "company_size",
-                "pm", "writer", 'services', 'management_fee', 'contents', 'kpi', 'duration', 'start_date', 'end_date', 'created_at')
+        fields = (
+        'id', 'xero_id', 'created', 'client_name', "other_revenue", "media_fees", "contract", "industry",
+        "company_size",
+        "pm", "writer", 'services', 'management_fee', 'contents', 'kpi', 'duration', 'start_date', 'end_date',
+        'created_at')
 
     # def create(self, validated_data):
     #     client_data = validated_data.pop('client')
@@ -273,7 +309,6 @@ class ContentCreatedSerializer(serializers.ModelSerializer):
 
 
 class IndustrySerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Industry
         fields = '__all__'
@@ -286,21 +321,80 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
 
 class NpsSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Nps
-        fields = '__all__'
+        fields = ('id', 'nps')
 
 
 class NpsCreatedSerializer(serializers.ModelSerializer):
+    #nps = NpsSerializer(many=False)
+
     class Meta:
         model = NpsCreated
-        fields = '__all__'
+        fields = ('id', 'nps', 'quantity', 'service')
+
+
+class NpsCreatedManagerSerializer(serializers.ModelSerializer):
+    nps = NpsSerializer(many=False)
+
+    class Meta:
+        model = NpsCreated
+        fields = ('id', 'nps', 'quantity', 'service')
+
+
+class WeekScoreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WeekScore
+        fields = ('id', 'week')
+
+
+class WeekScoreCreatedSerializer(WritableNestedModelSerializer):
+    week = WeekScoreSerializer(many=False)
+
+    class Meta:
+        model = WeekScoreCreated
+        fields = ('id', 'week', 'score', 'met')
+
+
+class WeekScoreCreatedManagerSerializer(serializers.ModelSerializer):
+    week = WeekScoreSerializer(many=False)
+
+    class Meta:
+        model = WeekScoreCreated
+        fields = ('id', 'week', 'score', 'met')
+
+
+class CsmClientListManagerSerializer(serializers.ModelSerializer):
+    client = ClientSerializer(many=False)
+    nps = NpsCreatedManagerSerializer(many=True)
+    week = WeekScoreCreatedManagerSerializer(many=True)
+
+    class Meta:
+        model = CsmClient
+        fields = ('id', 'client', 'nps', 'in_churn', 'week')
+
+
+class CsmClientManagerSerializer(WritableNestedModelSerializer):
+    nps = NpsCreatedSerializer(many=True)
+    week = WeekScoreCreatedSerializer(many=True)
+
+    class Meta:
+        model = CsmClient
+        fields = ('id', 'client', 'nps', 'in_churn', 'week')
 
 
 class DashboardLiveStreamSerializer(WritableNestedModelSerializer):
+    #client = ClientSerializer(many=False, required=False)
+
+    class Meta:
+        model = DashboardLiveStream
+        fields = ('type', 'amount', 'activity', 'created_at', 'client')
+
+
+class DashboardLiveStreamListSerializer(serializers.ModelSerializer):
     client = ClientSerializer(many=False, required=False)
 
     class Meta:
         model = DashboardLiveStream
         fields = ('type', 'amount', 'activity', 'created_at', 'client')
+

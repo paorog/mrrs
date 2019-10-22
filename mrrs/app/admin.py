@@ -1,6 +1,6 @@
 from django.contrib import admin
 from mrrs.app.models import System, Department, Designation, Role, UserProfile, Kpi, Industry, Duration, Service, \
-    Content, Nps
+    Content, Nps, OtherRevenue, WeekScore
 # Register your models here.
 #
 
@@ -68,6 +68,18 @@ class NpsAdmin(admin.ModelAdmin):
     search_fields = ('id', 'nps')
 
 
+class OtherRevenueAdmin(admin.ModelAdmin):
+    list_display = ('id', 'other_revenue')
+    list_filter = ('id', 'other_revenue')
+    search_fields = ('id', 'other_revenue')
+
+
+class WeekScoreAdmin(admin.ModelAdmin):
+    list_display = ('id', 'week')
+    list_filter = ('id', 'week')
+    search_fields = ('id', 'week')
+
+
 admin.site.register(UserProfile, UserProfileAdmin)
 admin.site.register(System)
 admin.site.register(Role, RoleAdmin)
@@ -79,4 +91,5 @@ admin.site.register(Duration, DurationAdmin)
 admin.site.register(Service, ServiceAdmin)
 admin.site.register(Content, ContentAdmin)
 admin.site.register(Nps, NpsAdmin)
-
+admin.site.register(OtherRevenue, OtherRevenueAdmin)
+admin.site.register(WeekScore, WeekScoreAdmin)

@@ -8,8 +8,9 @@ from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from django.core import serializers as serializer
-from mrrs.app.models import UserProfile, Role, Department, Designation, Client, ContentCreated, ServiceCreated, Service, \
-    Content, Kpi, Duration, Industry, Invoice, Nps, NpsCreated, DashboardLiveStream
+from mrrs.app.models import UserProfile, Role, Department, Designation, Client, ContentCreated, ServiceCreated, Service,\
+    Content, Kpi, Duration, Industry, OtherRevenue, OtherRevenueCreated, Invoice, Nps, NpsCreated, WeekScore, WeekScoreCreated, CsmClient, \
+    DashboardLiveStream
 from rest_framework import status
 from rest_framework import generics
 from django.http import HttpResponse, JsonResponse
@@ -39,7 +40,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
         if password_serialized.is_valid():
             if not user.check_password(password_serialized.data.get('old_password')):
-                return Response({'old_password': ['Wrong password.']}, 
+                return Response({'old_password': ['Wrong password.']},
                                 status=status.HTTP_400_BAD_REQUEST)
             # set_password also hashes the password that the user will get
             user.set_password(password_serialized.data.get('password'))
@@ -171,20 +172,28 @@ class ClientListViewSet(viewsets.ModelViewSet):
         return HttpResponse(xero_data)
 
     def dashboard_metrics(request):
+        today = datetime.date.today()
         date = request.GET.get('date')
         month_firstday = date[0:7]+'-01 00:31:04.09677+08'
         services = Client.objects.filter(Q(start_date=date) | Q(start_date__day=date[8:10])).values_list('services',
                                                                                                          flat=True)
+
+        other_revenues = Client.objects.filter(Q(start_date=date) | Q(start_date__day=date[8:10])).values_list('other_revenue',
+                                                                                                         flat=True)
+        other_revenues_this_day = OtherRevenueCreated.objects.filter(id__in=other_revenues).aggregate(Sum('other_revenue_value'))['other_revenue_value__sum']
+
         ltvs = Client.objects.filter(Q(start_date=date) | Q(start_date__day=date[8:10])).values('id', 'start_date', 'services')
 
         # mrr_upgrades -> need to pull added services in csm clients to determine mrr upgrades.
-        mrr_upgrades = 0
 
         if not services:
             mrr_current_day = 0
             revenue_churn_current = 0
         else:
             mrr_current_day = ServiceCreated.objects.filter(id__in=services).aggregate(Sum('service_fee'))['service_fee__sum']
+            mrr_current_day = ServiceCreated.objects.filter(id__in=services).aggregate(Sum('service_fee'))[
+                'service_fee__sum']
+            mrr_upgrades = ServiceCreated.objects.filter(id__in=services).aggregate(Sum('service_fee_upgrade'))['service_fee_upgrade__sum']
             revenue_churn_current = (mrr_current_day - mrr_upgrades) / mrr_current_day
 
         dateyear = date[0:4]
@@ -192,9 +201,12 @@ class ClientListViewSet(viewsets.ModelViewSet):
         dateday = date[8:11]
         active_clients_this_month = Client.objects.filter(created_at__gte=month_firstday).count()
 
-        churns_this_day = Client.objects.filter(updated_at__year=dateyear, updated_at__month=datemonth,
+        churns_this_day = CsmClient.objects.filter(updated_at__year=dateyear, updated_at__month=datemonth,
                                                 updated_at__day=dateday).filter(in_churn=True).count()
         churn_rate_current = churns_this_day / active_clients_this_month
+
+        #other_revenue = same calculation with mrr using other_revenuve values from clients
+        #
 
         # client = Client.objects.get(id=2)
         # services = client.services.all()
@@ -204,7 +216,8 @@ class ClientListViewSet(viewsets.ModelViewSet):
         metrics = {
             'mrr_current': mrr_current_day,
             'ltv_current': 0,
-            'churn_current': churn_rate_current,
+            'other_revenue': other_revenues_this_day,
+            'churn_current': {'churns': churns_this_day, 'churn_rate' :churn_rate_current},
             'churn_revenue_current': revenue_churn_current,
             'reactive_clients_current': 0,
             'reactive_clients_revenue_current': 0,
@@ -219,14 +232,15 @@ class ClientListViewSet(viewsets.ModelViewSet):
 
     def dashboard_metrics_data(request):
         date = request.GET.get('date')
+        today = datetime.date.today()
         month_firstday = date[0:7] + '-01 00:31:04.09677+08'
 
-        active_clients_this_month = Client.objects.filter(created_at__gte=month_firstday).count()
+        active_clients_this_month = CsmClient.objects.filter(created_at__gte=month_firstday).filter(in_churn=False).count()
 
-        churns_this_month = Client.objects.filter(in_churn=True).count()
+        churns_this_month = CsmClient.objects.filter(created_at__month=today.month).filter(in_churn=True).count()
         churn_rate = churns_this_month / active_clients_this_month
 
-        active_client_ids = Client.objects.filter(in_churn=False).values('id')
+        active_client_ids = CsmClient.objects.filter(in_churn=False).values('client_id')
         current_mrr = ServiceCreated.objects.filter(id__in=active_client_ids).aggregate(Sum('service_fee'))[
             'service_fee__sum']
         #mrr_upgrades -> need to pull added services in csm clients to determine mrr upgrades.
@@ -247,9 +261,12 @@ class ClientListViewSet(viewsets.ModelViewSet):
 
     def dashboard_breakdown(request):
         today = datetime.date.today()
+
         new_clients = Client.objects.filter(created_at__month=today.month).count()
-        client_churns = Client.objects.filter(in_churn=True).count()
-        client_churns_id = Client.objects.filter(in_churn=True).values('id')
+        client_churns = CsmClient.objects.filter(updated_at__year=today.year, updated_at__month=today.month,
+                                                updated_at__day=today.day).filter(in_churn=True).count()
+        client_churns_id = CsmClient.objects.filter(updated_at__year=today.year, updated_at__month=today.month,
+                                                updated_at__day=today.day).filter(in_churn=True).values('client_id')
         client_churns_sum_value = ServiceCreated.objects.filter(id__in=client_churns_id).aggregate(Sum('service_fee'))['service_fee__sum']
 
         total_changes = client_churns_sum_value
@@ -263,9 +280,95 @@ class ClientListViewSet(viewsets.ModelViewSet):
 
         return JsonResponse({'breakdowns': breakdowns})
 
+    def dashboard_metrics_current(request):
+        today = datetime.date.today()
+
+        active_clients = CsmClient.objects.filter(in_churn=False).values('client_id')
+        clients_running = Client.objects.filter(start_date__gte=today).values('id')
+        active_clients_this_month = CsmClient.objects.filter(created_at__year=today.year, created_at__month=today.month,
+                                                             created_at__day=today.day).filter(in_churn=False).count()
+        mrr_services = Client.objects.filter(id__in=clients_running).filter(Q(start_date__gte=today) | Q(Q(
+            start_date__gte=today, start_date__day=today.day))).values_list('services', flat=True)
+        ltv_services = Client.objects.filter(Q(start_date__year=today.year, start_date__month=today.month) | Q(
+            Q(start_date__year=today.year, start_date__month__lte=today.month))).values_list('services', flat=True)
+        churns_this_month = CsmClient.objects.filter(created_at__month=today.month).filter(in_churn=True).count()
+        mrr_upgrades = ServiceCreated.objects.filter(id__in=mrr_services).aggregate(Sum('service_fee_upgrade'))[
+            'service_fee_upgrade__sum']
+        mrr_downgrades = ServiceCreated.objects.filter(id__in=mrr_services).aggregate(Sum('service_fee_downgrade'))[
+            'service_fee_downgrade__sum']
+        new_mrr = ServiceCreated.objects.filter(id__in=mrr_services, service_fee_upgrade__gt=0).aggregate(Sum('service_fee_upgrade'))[
+            'service_fee_upgrade__sum']
+        contraction_mrr = ServiceCreated.objects.filter(id__in=mrr_services, service_fee_downgrade__gt=0).aggregate(Sum('service_fee_downgrade'))[
+            'service_fee_downgrade__sum']
+        other_revenues = Client.objects.filter(Q(start_date=today) | Q(start_date__day=today.day)).values_list(
+            'other_revenue', flat=True)
+        mrr_current = ServiceCreated.objects.filter(service_id__in=(1, 2, 3, 4)).filter(id__in=mrr_services).aggregate(
+            Sum('service_fee'))['service_fee__sum']
+        ltv_current = ServiceCreated.objects.filter(service_id__in=(1, 2, 3, 4)).filter(id__in=ltv_services).aggregate(
+            Sum('service_fee'))['service_fee__sum']
+        churn_current = active_clients_this_month and churns_this_month / active_clients_this_month or 0
+        revenue_churn_current = mrr_current and ((mrr_current - mrr_upgrades) / mrr_current) or 0
+        other_revenue_current = OtherRevenueCreated.objects.filter(id__in=other_revenues).aggregate(Sum('other_revenue_value'))[
+            'other_revenue_value__sum']
+        web_current = ServiceCreated.objects.filter(service_id__in=(5, 6, 7)).filter(id__in=ltv_services).aggregate(
+            Sum('service_fee'))['service_fee__sum']
+
+        has_mrr_current = mrr_current and mrr_current or 0
+        has_ltv_current = ltv_current and ltv_current or 0
+        has_churn_current = churn_current
+        has_revenue_churn_current = revenue_churn_current
+        has_other_revenue_current = other_revenue_current and other_revenue_current or 0
+        has_mrr_upgrades_current = mrr_upgrades and mrr_upgrades or 0
+        has_mrr_downgrades_current = mrr_downgrades and mrr_downgrades or 0
+        has_new_mrr_current = new_mrr and new_mrr or 0
+        has_contraction_mrr_current = contraction_mrr and contraction_mrr or 0
+        has_quick_ratio = (has_contraction_mrr_current + has_revenue_churn_current) and (has_new_mrr_current + has_mrr_upgrades_current) / (has_contraction_mrr_current + has_revenue_churn_current) or 0
+        has_web_current = web_current and web_current or 0
+
+        metrics_current = {
+            'mrr_current': has_mrr_current,
+            'ltv_current': has_ltv_current,
+            'churn_current': has_churn_current,
+            'revenue_churn_current': has_revenue_churn_current,
+            'other_revenue_current': has_other_revenue_current,
+            'mrr_downgrades_current': has_mrr_downgrades_current,
+            'mrr_upgrades_current': has_mrr_upgrades_current,
+            'quick_ratio_current': has_quick_ratio,
+            'web_current': has_web_current
+        }
+
+        return JsonResponse({'metrics_current': metrics_current})
+
+    def dashboard_metrics_monthly(request):
+        date = request.GET.get('date')
+        dateyear = date[0:4]
+        datemonth = date[5:7]
+
+        today = datetime.date.today()
+
+        ltv_services = Client.objects.filter(Q(start_date__year=dateyear, start_date__month=datemonth) | Q(
+            Q(start_date__year=dateyear, start_date__month__lte=datemonth))).values_list('services', flat=True)
+
+
+        ltv_month = ServiceCreated.objects.filter(service_id__in=(1, 2, 3, 4)).filter(id__in=ltv_services).aggregate(Sum('service_fee'))[
+                'service_fee__sum']
+
+        web_month = ServiceCreated.objects.filter(service_id__in=(5, 6, 7)).filter(id__in=ltv_services).aggregate(Sum('service_fee'))[
+                'service_fee__sum']
+
+        has_ltv_month = ltv_month and ltv_month or 0
+        has_web_month = web_month and web_month or 0
+
+        metrics_monthly = {
+            'ltv_month': has_ltv_month,
+            'web_month': has_web_month
+        }
+
+        return JsonResponse({'metrics_monthly': metrics_monthly})
+
     def get_my_clients(request):
         userid = request.GET.get('createdby')
-        clients = Client.objects.filter(created=userid).values('id', 'client_name', 'management_fee', 'end_date')
+        clients = Client.objects.filter(created=userid).values('id', 'client_name', 'management_fee', 'end_date').order_by('id')
         return JsonResponse({'clients': list(clients)})
 
     def get_clients_by_hero(request):
@@ -281,7 +384,7 @@ class ClientListViewSet(viewsets.ModelViewSet):
 
     def get_client_by_xero(request):
         xeroid = request.GET.get('xero_id')
-        client = Client.objects.filter(xero_id=xeroid).values("id","xero_id", "in_churn","created","client_name",
+        client = Client.objects.filter(xero_id=xeroid).values("id","xero_id", "created","client_name",
                                                               "management_fee", "other_revenue", "media_fees",
                                                               "contract", "industry", "company_size", "pm", "writer",
                                                               "start_date", "end_date", "duration")
@@ -353,6 +456,14 @@ class IndustryViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated,)
 
 
+class OtherRevenueViewSet(viewsets.ModelViewSet):
+
+    queryset = OtherRevenue.objects.all()
+    serializer_class = serializers.OtherRevenueSerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+
 class InvoiceViewSet(viewsets.ModelViewSet):
     queryset = Invoice.objects.all()
     serializer_class = serializers.InvoiceSerializer
@@ -384,10 +495,65 @@ class NpsCreatedViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated,)
 
 
+class WeekScoreViewSet(viewsets.ModelViewSet):
+
+    queryset = WeekScore.objects.all()
+    serializer_class = serializers.WeekScoreSerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+
+class WeekScoreCreatedViewSet(viewsets.ModelViewSet):
+
+    queryset = WeekScoreCreated.objects.all()
+    serializer_class = serializers.WeekScoreCreatedSerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+
+class CsmClientListViewSet(viewsets.ModelViewSet):
+
+    queryset = CsmClient.objects.all()
+    serializer_class = serializers.CsmClientListManagerSerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def get_csm_client_data(request):
+        client = request.GET.get('client_id')
+        check_exist = CsmClient.objects.filter(client_id=client).values('id')
+        csmclient = check_exist and CsmClient.objects.get(client=client) or []
+        csmclient_weeks = csmclient and csmclient.week.all().values('id', 'week', 'score', 'met') or []
+        csmclient_nps = csmclient and csmclient.nps.all().values('id', 'nps', 'quantity', 'service') or []
+        #return HttpResponse(csmclient_weeks.week.all())
+        return JsonResponse({'csmclient_weeks': list(csmclient_weeks), 'csmclient_nps': list(csmclient_nps)})
+
+
+class CsmClientViewSet(viewsets.ModelViewSet):
+
+    queryset = CsmClient.objects.all()
+    serializer_class = serializers.CsmClientManagerSerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    # def getClient(request):
+    #     client_id = request.GET.get('client_id')
+    #     csmclient_id = CsmClient.objects.filter(client_id=client_id).values_list('nps', flat=True)
+    #     csmclient_nps = NpsCreated.objects.filter(id=csmclient_id).values('id')
+    #     return HttpResponse(csmclient_nps)
+
+
 class DashboardLiveStreamViewSet(viewsets.ModelViewSet):
 
     queryset = DashboardLiveStream.objects.all()
     serializer_class = serializers.DashboardLiveStreamSerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+
+class DashboardLiveStreamListViewSet(viewsets.ModelViewSet):
+
+    queryset = DashboardLiveStream.objects.all()
+    serializer_class = serializers.DashboardLiveStreamListSerializer
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 

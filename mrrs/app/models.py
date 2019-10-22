@@ -129,7 +129,9 @@ class Kpi(models.Model):
 
 class KpiCreated(models.Model):
     kpi = models.ForeignKey(Kpi, to_field="id", db_column="kpi_id", on_delete=models.CASCADE)
+    kpi_measure = models.CharField(max_length=100, null=True)
     kpi_text = models.CharField(max_length=100, null=True)
+
 
 class Industry(models.Model):
     industry = models.CharField(max_length=100)
@@ -143,6 +145,7 @@ class Duration(models.Model):
 
 class Service(models.Model):
     service = models.CharField(max_length=50)
+    service_fee = models.IntegerField()
 
 
 class Content(models.Model):
@@ -153,6 +156,9 @@ class ServiceCreated(models.Model):
     service = models.ForeignKey(Service, to_field="id", db_column="service_id", on_delete=models.CASCADE)
     service_qty = models.IntegerField(null=True, default=1, blank=True)
     service_fee = models.IntegerField()
+    service_fee_original = models.IntegerField(default=0, null=True, blank=True)
+    service_fee_upgrade = models.IntegerField(default=0, null=True, blank=True)
+    service_fee_downgrade = models.IntegerField(default=0, null=True, blank=True)
     service_status = models.ForeignKey(System, to_field="id", db_column="service_status_id", default=None, blank=True,
                                        null=True, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True, null=True)
@@ -162,21 +168,29 @@ class ServiceCreated(models.Model):
 class ContentCreated(models.Model):
     content = models.ForeignKey(Content, to_field="id", db_column="content_id", on_delete=models.CASCADE)
     content_qty = models.IntegerField(null=True, default=None, blank=True)
-    content_status = models.ForeignKey(System, to_field="id", db_column="content_status_id", default=None, blank=True,
-                                       null=True, on_delete=models.CASCADE)
+    completed = models.BooleanField(default=0)
     created_at = models.DateTimeField(auto_now_add=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, null=True)
+
+
+class OtherRevenue(models.Model):
+    other_revenue = models.CharField(max_length=100)
+
+
+class OtherRevenueCreated(models.Model):
+    other_revenue = models.ForeignKey(OtherRevenue, to_field="id", db_column="other_revenue_id", on_delete=models.CASCADE)
+    other_revenue_currency = models.CharField(max_length=5)
+    other_revenue_value = models.FloatField()
 
 
 class Client(models.Model):
     xero_id = models.CharField(max_length=50, default=None)
     created = models.ForeignKey(User, to_field="id", db_column="created_id", related_name="created_by", on_delete=models.PROTECT)
     client_name = models.CharField(max_length=100)
-    in_churn = models.BooleanField(default=0)
     services = models.ManyToManyField(ServiceCreated)
     management_fee = models.IntegerField(null=True, default=None, blank=True)
     contents = models.ManyToManyField(ContentCreated)
-    other_revenue = models.CharField(max_length=100)
+    other_revenue = models.ManyToManyField(OtherRevenueCreated)
     media_fees = models.FloatField(default=0)
     #duration = models.ForeignKey(Duration, to_field="id", db_column="duration_id", on_delete=models.CASCADE)
     duration = models.CharField(max_length=10)
@@ -211,10 +225,20 @@ class NpsCreated(models.Model):
     service = models.CharField(max_length=100)
 
 
+class WeekScore(models.Model):
+    week = models.IntegerField(default=None)
+
+
+class WeekScoreCreated(models.Model):
+    week = models.ForeignKey(WeekScore, to_field="id", db_column="week_id", default=None, on_delete=models.CASCADE)
+    score = models.IntegerField()
+    met = models.BooleanField(default=0)
+
+
 class CsmClient(models.Model):
     client = models.ForeignKey(Client, to_field="id", db_column="client_id", default=None, on_delete=models.CASCADE)
-    week = models.IntegerField(default=None)
-    score = models.IntegerField(default=None)
+    in_churn = models.BooleanField(default=0)
+    week = models.ManyToManyField(WeekScoreCreated, related_name="client_weeks")
     nps = models.ManyToManyField(NpsCreated)
     created_at = models.DateTimeField(auto_now_add=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, null=True)
