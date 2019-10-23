@@ -285,6 +285,9 @@ class ClientListViewSet(viewsets.ModelViewSet):
 
         active_clients = CsmClient.objects.filter(in_churn=False).values('client_id')
         clients_running = Client.objects.filter(start_date__gte=today).values('id')
+        total_clients = CsmClient.objects.filter(in_churn=False).count()
+        total_active_clients = Client.objects.filter(start_date__gte=today).count()
+        new_clients = Client.objects.filter(start_date__year=today.year, start_date__month=today.month).count()
         active_clients_this_month = CsmClient.objects.filter(created_at__year=today.year, created_at__month=today.month,
                                                              created_at__day=today.day).filter(in_churn=False).count()
         mrr_services = Client.objects.filter(id__in=clients_running).filter(Q(start_date__gte=today) | Q(Q(
@@ -294,8 +297,10 @@ class ClientListViewSet(viewsets.ModelViewSet):
         churns_this_month = CsmClient.objects.filter(created_at__month=today.month).filter(in_churn=True).count()
         mrr_upgrades = ServiceCreated.objects.filter(id__in=mrr_services).aggregate(Sum('service_fee_upgrade'))[
             'service_fee_upgrade__sum']
+        mrr_upgrades_count = ServiceCreated.objects.filter(id__in=mrr_services, service_fee_upgrade__gt=0).count()
         mrr_downgrades = ServiceCreated.objects.filter(id__in=mrr_services).aggregate(Sum('service_fee_downgrade'))[
             'service_fee_downgrade__sum']
+        mrr_downgrades_count = ServiceCreated.objects.filter(id__in=mrr_services, service_fee_downgrade__gt=0).count()
         new_mrr = ServiceCreated.objects.filter(id__in=mrr_services, service_fee_upgrade__gt=0).aggregate(Sum('service_fee_upgrade'))[
             'service_fee_upgrade__sum']
         contraction_mrr = ServiceCreated.objects.filter(id__in=mrr_services, service_fee_downgrade__gt=0).aggregate(Sum('service_fee_downgrade'))[
@@ -318,8 +323,11 @@ class ClientListViewSet(viewsets.ModelViewSet):
         has_churn_current = churn_current
         has_revenue_churn_current = revenue_churn_current
         has_other_revenue_current = other_revenue_current and other_revenue_current or 0
+        has_arpa_current = active_clients and has_mrr_current / total_clients or 0
         has_mrr_upgrades_current = mrr_upgrades and mrr_upgrades or 0
+        has_mrr_upgrades_count = mrr_upgrades_count and mrr_upgrades_count or 0
         has_mrr_downgrades_current = mrr_downgrades and mrr_downgrades or 0
+        has_mrr_downgrades_count = mrr_downgrades_count and mrr_downgrades_count or 0
         has_new_mrr_current = new_mrr and new_mrr or 0
         has_contraction_mrr_current = contraction_mrr and contraction_mrr or 0
         has_quick_ratio = (has_contraction_mrr_current + has_revenue_churn_current) and (has_new_mrr_current + has_mrr_upgrades_current) / (has_contraction_mrr_current + has_revenue_churn_current) or 0
@@ -328,12 +336,17 @@ class ClientListViewSet(viewsets.ModelViewSet):
         metrics_current = {
             'mrr_current': has_mrr_current,
             'ltv_current': has_ltv_current,
+            'other_revenue_current': has_other_revenue_current,
+            'arpa_current': has_arpa_current,
             'churn_current': has_churn_current,
             'revenue_churn_current': has_revenue_churn_current,
-            'other_revenue_current': has_other_revenue_current,
+            'mrr_downgrades_count': has_mrr_downgrades_count,
             'mrr_downgrades_current': has_mrr_downgrades_current,
+            'mrr_upgrades_count': has_mrr_upgrades_count,
             'mrr_upgrades_current': has_mrr_upgrades_current,
             'quick_ratio_current': has_quick_ratio,
+            'active_clients': total_active_clients,
+            'new_clients': new_clients,
             'web_current': has_web_current
         }
 
